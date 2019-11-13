@@ -39,7 +39,7 @@ class HomePage extends Component {
             <Form>
               <Form.Item label="Documento de identidad profesor">
                 {getFieldDecorator('id', {
-                  rules: [{ required: true, message: 'Documento de identidad requerido!' }]
+                  rules: [{ required: true, message: 'Documento de identidad requerido!' }],
                 })(<Input />)}
               </Form.Item>
             </Form>

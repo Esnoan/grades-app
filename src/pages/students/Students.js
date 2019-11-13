@@ -1,9 +1,17 @@
 import React, { Component } from 'react';
-import { Form, Input, Button, Table, Modal, Select } from 'antd';
+import { Form, Input, Button, Table, Modal, Select, notification } from 'antd';
 
 import courses from './../../courses';
+import http from '../../http';
 
 const { Option, OptGroup } = Select;
+
+const openNotificationWithIcon = () => {
+  notification['success']({
+    message: 'Correcto',
+    description: 'El estudiante ha sido matriculado correctamente.',
+  });
+};
 
 class StudentsPage extends Component {
   constructor(props) {
@@ -13,12 +21,12 @@ class StudentsPage extends Component {
         {
           title: 'Nombre',
           dataIndex: 'name',
-          key: 'name'
+          key: 'name',
         },
         {
           title: 'Identificación',
           dataIndex: 'id',
-          key: 'id'
+          key: 'id',
         },
         {
           title: 'Opciones',
@@ -33,51 +41,74 @@ class StudentsPage extends Component {
             >
               Matricular materia
             </Button>
-          )
-        }
-      ],
-      dataSource: [
-        {
-          key: '1',
-          name: 'Mike',
-          id: 32
+          ),
         },
-        {
-          key: '2',
-          name: 'John',
-          id: 42
-        }
       ],
+      students: [],
       loading: false,
       modalNewStudent: false,
       modalRegisterCourse: false,
       studentSelected: '',
       modeStudent: true,
-      teachers: [
-        {
-          name: 'Profesor 1',
-          id: '123456789'
-        },
-        {
-          name: 'Profesor 2',
-          id: '1234567890'
-        }
-      ]
+      teachers: [],
     };
   }
 
   showModal = () => {
     this.setState({
-      modalNewStudent: true
+      modalNewStudent: true,
     });
   };
+
+  getStudents() {
+    http.get('participant/estudiante').then(res => {
+      let data = res.data.data;
+      let students = [];
+      let count = 0;
+      data.forEach(reg => {
+        students.push({
+          key: count,
+          name: reg.nombre,
+          id: reg.id,
+        });
+        count += 1;
+      });
+      this.setState({
+        students,
+      });
+    });
+  }
+
+  getTeachers() {
+    http.get('participant/profesor').then(res => {
+      let data = res.data.data;
+      let teachers = [];
+      let count = 0;
+      data.forEach(reg => {
+        teachers.push({
+          key: count,
+          name: reg.nombre,
+          id: reg.id,
+        });
+        count += 1;
+      });
+      this.setState({
+        teachers,
+      });
+    });
+  }
+
+  componentDidMount() {
+    this.getStudents();
+    this.getTeachers();
+  }
 
   onRegisterCourse = (key, e) => {
     e.preventDefault();
     this.setState({
       modalRegisterCourse: true,
       studentSelected: key,
-      modeStudent: false
+      modeStudent: false,
     });
   };
 
@@ -85,11 +116,20 @@ class StudentsPage extends Component {
     e.preventDefault();
     this.props.form.validateFields((err, values) => {
       if (!err) {
-        console.log('Nombre ', values.name);
-        console.log('ID ', values.id);
+        http
+          .post('participant/estudiante', {
+            nombre: values.name,
+            id: values.id,
+          })
+          .then(data => {
+            this.getStudents();
+          })
+          .catch(err => {
+            console.log('error ' + err);
+          });
         this.props.form.resetFields();
         this.setState({
-          modalNewStudent: false
+          modalNewStudent: false,
         });
       }
     });
@@ -101,9 +141,24 @@ class StudentsPage extends Component {
       if (!err) {
         console.log('Profesor ', values.teacher);
         console.log('Curso ', values.course);
+        http
+          .post('asset/materia', {
+            nombre: values.course,
+            estudiante: this.state.studentSelected,
+            profesor: values.teacher,
+            corte1: '',
+            corte2: '',
+            corte3: '',
+          })
+          .then(data => {
+            openNotificationWithIcon();
+          })
+          .catch(err => {
+            console.log('error ' + err);
+          });
         this.props.form.resetFields();
         this.setState({
-          modalRegisterCourse: false
+          modalRegisterCourse: false,
         });
       }
     });
@@ -112,7 +167,7 @@ class StudentsPage extends Component {
   handleCancel = e => {
     this.setState({
       modalNewStudent: false,
-      modalRegisterCourse: false
+      modalRegisterCourse: false,
     });
   };
 
@@ -158,7 +213,7 @@ class StudentsPage extends Component {
           Nuevo
         </Button>
         <br />
-        <Table dataSource={this.state.dataSource} columns={this.state.columns} bordered />;
+        <Table dataSource={this.state.students} columns={this.state.columns} bordered />;
         <Modal
           title="Nuevo estudiante"
           visible={modalNewStudent}
@@ -170,18 +225,18 @@ class StudentsPage extends Component {
             </Button>,
             <Button key="submit" type="primary" loading={loading} onClick={this.handleSaveStudent}>
               Guardar
-            </Button>
+            </Button>,
           ]}
         >
           <Form>
             <Form.Item label="Nombre">
               {getFieldDecorator('name', {
-                rules: [{ required: modeStudent, message: 'Nombre es requerido!' }]
+                rules: [{ required: modeStudent, message: 'Nombre es requerido!' }],
               })(<Input />)}
             </Form.Item>
             <Form.Item label="Identificación">
               {getFieldDecorator('id', {
-                rules: [{ required: modeStudent, message: 'Identificación es requerida!' }]
+                rules: [{ required: modeStudent, message: 'Identificación es requerida!' }],
               })(<Input type="number" />)}
             </Form.Item>
             <br />
@@ -204,7 +259,7 @@ class StudentsPage extends Component {
               onClick={this.handleRegisterCourse}
             >
               Guardar
-            </Button>
+            </Button>,
           ]}
         >
           <Form>
@@ -213,14 +268,14 @@ class StudentsPage extends Component {
                 rules: [
                   {
                     required: !modeStudent,
-                    message: 'Por favor selecciona una materia o curso'
-                  }
-                ]
+                    message: 'Por favor selecciona una materia o curso',
+                  },
+                ],
               })(
                 <Select mode="single">
                   <OptGroup label="Materias">{subjectList}</OptGroup>
                   <OptGroup label="Cursos">{coursesList}</OptGroup>
-                </Select>
+                </Select>,
               )}
             </Form.Item>
             <br />
@@ -229,9 +284,9 @@ class StudentsPage extends Component {
                 rules: [
                   {
                     required: !modeStudent,
-                    message: 'Por favor seleccione un profesor'
-                  }
-                ]
+                    message: 'Por favor seleccione un profesor',
+                  },
+                ],
               })(<Select mode="single">{teachersList}</Select>)}
             </Form.Item>
           </Form>

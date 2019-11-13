@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import { Link } from 'react-router-dom';
 import { Button, Table, Row, Col, Typography, Form, Modal, Select, Input } from 'antd';
+import http from '../../http';
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -13,27 +14,27 @@ class StudentsCoursePage extends Component {
         {
           title: 'ID',
           dataIndex: 'id',
-          key: 'id'
+          key: 'id',
         },
         {
           title: 'Nombre',
           dataIndex: 'name',
-          key: 'name'
+          key: 'name',
         },
         {
           title: 'Corte 1',
           dataIndex: 'gradeOne',
-          key: 'gradeOne'
+          key: 'gradeOne',
         },
         {
           title: 'Corte 2',
           dataIndex: 'gradeTwo',
-          key: 'gradeTwo'
+          key: 'gradeTwo',
         },
         {
           title: 'Corte 3',
           dataIndex: 'gradeThree',
-          key: 'gradeThree'
+          key: 'gradeThree',
         },
         {
           title: 'Opciones',
@@ -48,8 +49,8 @@ class StudentsCoursePage extends Component {
             >
               Calificar
             </Button>
-          )
-        }
+          ),
+        },
       ],
       dataSource: [
         {
@@ -58,43 +59,60 @@ class StudentsCoursePage extends Component {
           name: 'Estudiante 1',
           gradeOne: '5',
           gradeTwo: '5',
-          gradeThree: '5'
+          gradeThree: '5',
         },
-        {
-          key: '2',
-          id: 'A002',
-          name: 'Estudiante 21',
-          gradeOne: '5',
-          gradeTwo: '5',
-          gradeThree: '5'
-        },
-        {
-          key: '12',
-          id: 'A003',
-          name: 'Estudiante 13',
-          gradeOne: '5',
-          gradeTwo: '5',
-          gradeThree: '5'
-        }
       ],
       teacherId: props.match.params.teacherId,
       courseId: props.match.params.courseId,
       visible: false,
       loading: false,
-      studentId: ''
+      studentId: '',
     };
   }
+
+  componentDidMount() {
+    http.get('asset/materia').then(res => {
+      let subjects = res.data.data.filter(
+        subject =>
+          subject.nombre === this.state.courseId && subject.profesor === this.state.teacherId,
+      );
+      let dataSource = [];
+      let key = 0;
+      subjects.forEach(element => {
+        let name = this.getStudentName(element.estudiante);
+        dataSource.push({
+          key,
+          id: element.estudiante,
+          name,
+          gradeOne: element.corte1 === '' ? '-' : element.corte1,
+          gradeTwo: element.corte2 === '' ? '-' : element.corte2,
+          gradeThree: element.corte3 === '' ? '-' : element.corte3,
+        });
+      });
+      this.setState({ dataSource });
+    });
+  }
+
+  getStudentName(id) {
+    let name = '';
+    http.get('participant/estudiante').then(res => {
+      let array = res.data.data.filter(student => student.id === id);
+      name = array[0].nombre;
+    });
+    return name;
+  }
+
   onRegisterCourse = (key, e) => {
     e.preventDefault();
     this.setState({
       studentId: key,
-      visible: true
+      visible: true,
     });
   };
 
   handleCancel = e => {
     this.setState({
-      visible: false
+      visible: false,
     });
   };
 
@@ -106,7 +124,7 @@ class StudentsCoursePage extends Component {
         console.log('Nota ', values.grade);
         this.props.form.resetFields();
         this.setState({
-          visible: false
+          visible: false,
         });
       }
     });
@@ -144,14 +162,14 @@ class StudentsCoursePage extends Component {
               onClick={this.handleRegisterGrade}
             >
               Guardar
-            </Button>
+            </Button>,
           ]}
         >
           <Form>
             <Form.Item label="Estudiante">
               {getFieldDecorator('id', {
                 initialValue: this.state.studentId,
-                rules: [{ required: true, message: 'Ingrese una nota' }]
+                rules: [{ required: true, message: 'Ingrese una nota' }],
               })(<Input disabled type="text" />)}
             </Form.Item>
             <Form.Item label="Corte">
@@ -159,9 +177,9 @@ class StudentsCoursePage extends Component {
                 rules: [
                   {
                     required: true,
-                    message: 'Por favor seleccione el corte al cual pertenece la calificación'
-                  }
-                ]
+                    message: 'Por favor seleccione el corte al cual pertenece la calificación',
+                  },
+                ],
               })(
                 <Select mode="single">
                   <Option key={1} value="gradeOne">
@@ -173,12 +191,12 @@ class StudentsCoursePage extends Component {
                   <Option key={1} value="gradeThree">
                     Corte 3
                   </Option>
-                </Select>
+                </Select>,
               )}
             </Form.Item>
             <Form.Item label="Nota">
               {getFieldDecorator('grade', {
-                rules: [{ required: true, message: 'Ingrese una nota' }]
+                rules: [{ required: true, message: 'Ingrese una nota' }],
               })(<Input type="number" />)}
             </Form.Item>
           </Form>

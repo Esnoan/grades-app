@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import { Form, Input, Button, Table, Modal } from 'antd';
+import http from '../../http';
 
 class TeachersPage extends Component {
   constructor(props) {
@@ -9,104 +10,80 @@ class TeachersPage extends Component {
         {
           title: 'Nombre',
           dataIndex: 'name',
-          key: 'name'
+          key: 'name',
         },
         {
           title: 'Identificación',
           dataIndex: 'id',
-          key: 'id'
-        }
+          key: 'id',
+        },
       ],
-      dataSource: [
-        {
-          key: '1',
-          name: 'Mike',
-          id: 32
-        },
-        {
-          key: '2',
-          name: 'John',
-          id: 42
-        },
-        {
-          key: '12',
-          name: 'Mike',
-          id: 32
-        },
-        {
-          key: '23',
-          name: 'John',
-          id: 42
-        },
-        {
-          key: '14',
-          name: 'Mike',
-          id: 32
-        },
-        {
-          key: '52',
-          name: 'John',
-          id: 42
-        },
-        {
-          key: '16',
-          name: 'Mike',
-          id: 32
-        },
-        {
-          key: '72',
-          name: 'John',
-          id: 42
-        },
-        {
-          key: '81',
-          name: 'Mike',
-          id: 32
-        },
-        {
-          key: '92',
-          name: 'John',
-          id: 42
-        },
-        {
-          key: '811',
-          name: 'Mike',
-          id: 32
-        },
-        {
-          key: '912',
-          name: 'John',
-          id: 42
-        }
-      ],
+      teachers: [],
       loading: false,
-      visible: false
+      visible: false,
     };
   }
 
   showModal = () => {
     this.setState({
-      visible: true
+      visible: true,
     });
   };
+
+  componentDidMount() {
+    this.getTeachers();
+  }
 
   handleOk = e => {
     e.preventDefault();
     this.props.form.validateFields((err, values) => {
       if (!err) {
-        console.log('Received values of form: ', values);
+        http
+          .post('participant/profesor', {
+            nombre: values.name,
+            id: values.id,
+          })
+          .then(data => {
+            this.getTeachers();
+          })
+          .catch(err => {
+            console.log('error ' + err);
+          });
+        this.props.form.resetFields();
+        this.setState({
+          modalNewStudent: false,
+        });
       }
     });
     this.setState({
-      visible: false
+      visible: false,
     });
   };
 
   handleCancel = e => {
     this.setState({
-      visible: false
+      visible: false,
     });
   };
+
+  getTeachers() {
+    http.get('participant/profesor').then(res => {
+      let data = res.data.data;
+      let teachers = [];
+      let count = 0;
+      data.forEach(reg => {
+        teachers.push({
+          key: count,
+          name: reg.nombre,
+          id: reg.id,
+        });
+        count += 1;
+      });
+      this.setState({
+        teachers,
+      });
+    });
+  }
 
   render() {
     const { getFieldDecorator } = this.props.form;
@@ -121,7 +98,7 @@ class TeachersPage extends Component {
           Nuevo
         </Button>
         <br />
-        <Table dataSource={this.state.dataSource} columns={this.state.columns} bordered />;
+        <Table dataSource={this.state.teachers} columns={this.state.columns} bordered />;
         <Modal
           title="Nuevo profesor"
           visible={visible}
@@ -133,18 +110,18 @@ class TeachersPage extends Component {
             </Button>,
             <Button key="submit" type="primary" loading={loading} onClick={this.handleOk}>
               Guardar
-            </Button>
+            </Button>,
           ]}
         >
           <Form onSubmit={this.handleSubmit}>
             <Form.Item label="Nombre">
               {getFieldDecorator('name', {
-                rules: [{ required: true, message: 'Nombre es requerido!' }]
+                rules: [{ required: true, message: 'Nombre es requerido!' }],
               })(<Input />)}
             </Form.Item>
             <Form.Item label="Identificación">
               {getFieldDecorator('id', {
-                rules: [{ required: true, message: 'Identificación es requerida!' }]
+                rules: [{ required: true, message: 'Identificación es requerida!' }],
               })(<Input type="number" />)}
             </Form.Item>
             <br />
